@@ -40,8 +40,9 @@ int val = 0;
 // the file itself
 File bmpFile;
 File root;
-//boolean displayFile = false;
-//int iterations = 0;
+File dataFile;
+int maxBytes = 32; // read 32 bytes at a time
+byte buffer[32];
 
 // information we extract about the bitmap file
 int bmpWidth, bmpHeight;
@@ -62,52 +63,37 @@ void setup(void) {
 
   delay(500);
   Serial.print("Initializing SD card...");
-
+  
   if (!SD.begin(SD_CS)) {
     Serial.println("failed!");
     return;
   }
   Serial.println("SD OK!");
 
-
-  //fileList.setPrinter (Serial);
-  Serial.println("\nFiles found on the card (name, date and size in bytes): ");
-  root = SD.open("/");
-  displayImage(root);
-  //printDirectory(root, 0);
-
-//   File dataFile = SD.open("test.txt", FILE_READ);
-//   while (dataFile.available()) {
-//      Serial.write(dataFile.read());
-//    }
-//    dataFile.close();
-    
+  displayImage("/");
   Serial.println("\nEnd");
 }
 
 void loop() {
   // read analog input
   val = analogRead(analogPin);
-  
   // 5v analog on high
   if (val >= 1023) {
     // swap pictures
-    Serial.println(val); 
-    displayImage(root);
+    Serial.println(val);
+    displayImage("/");
   }
-//  
-//  // write to the sd card
-//  File dataFile = SD.open("test.txt", FILE_WRITE);
-//  if (dataFile) {
-//    while (Serial.available() > 0) {
-//      dataFile.write(Serial.read());
-//   }
-//    dataFile.close();
-//  }
-//  // if the file isn't open, pop up an error:
-//  else {
-//    Serial.println("error opeMning datalog.txt");
-//  } 
+  
+  // listen over serial
+  while (Serial.available() > 0) {
+    // write to the sd card
+    File dataFile = SD.open("test.bmp", FILE_WRITE);
+    Serial.readBytes(buffer, maxBytes);
+    dataFile.write(buffer, maxBytes);
+    dataFile.close();
+    Serial.print("print more");  
+  }
+
 }
 
 char* getExtension(char* filename) {
@@ -116,16 +102,18 @@ char* getExtension(char* filename) {
   return dot + 1;
 }
 
-void displayImage(File dir) {
+void displayImage(char * dirPath) {
+  root = SD.open(dirPath);
   while(true) {
-    File entry =  dir.openNextFile();
+    File entry =  root.openNextFile();
     if (! entry) {
       // no more files
-      dir.rewindDirectory();
-      break;
+      Serial.print("no more files");
+      root.rewindDirectory();
     }
     
     if (!entry.isDirectory() && !strcmp(getExtension(entry.name()), "BMP")) {
+      root.close();
       bmpDraw(entry.name(), 0, 0); 
       Serial.print(entry.name());
       Serial.print("\t\t");
@@ -135,6 +123,7 @@ void displayImage(File dir) {
     }
     entry.close();
   }
+  root.close();
 }
 
 // This function opens a Windows Bitmap (BMP) file and
@@ -171,7 +160,7 @@ void bmpDraw(char * filename, uint8_t x, uint8_t y) {
 
   // Open requested file on SD card
 
-  if ((bmpFile = SD.open(filename)) == NULL) {
+  if ((bmpFile = SD.open(filename, FILE_READ)) == NULL) {
     Serial.print("File not found");
     return;
   }
