@@ -37,6 +37,7 @@ Adafruit_HX8340B display(TFT_RESET, TFT_CS);
 int analogPin = 0;
 int val = 0;
 
+// test
 // the file itself
 File bmpFile;
 File root;
