@@ -88,7 +88,7 @@ void loop() {
   while (Serial.available() > 0) {
     // write to the sd card
     File dataFile = SD.open("test.bmp", FILE_WRITE);
-    Serial.readBytes(buffer, maxBytes);
+    Serial.readBytes((char *) buffer, maxBytes);
     dataFile.write(buffer, maxBytes);
     dataFile.close();
     Serial.print("print more");  
